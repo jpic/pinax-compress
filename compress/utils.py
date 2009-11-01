@@ -9,6 +9,11 @@ from django.dispatch import dispatcher
 from compress.conf import settings
 from compress.signals import css_filtered, js_filtered
 
+if 'staticfiles' in django_settings.INSTALLED_APPS:
+    from staticfiles.utils import get_media_path
+else:
+    get_media_path = None
+
 def get_class(class_string):
     """
     Convert a string version of a function name to the callable object.
@@ -58,7 +63,14 @@ def media_root(filename):
     """
     Return the full path to ``filename``. ``filename`` is a relative path name in MEDIA_ROOT
     """
-    return os.path.join(django_settings.MEDIA_ROOT, filename)
+    filepath = os.path.join(django_settings.MEDIA_ROOT, filename)
+
+    if not os.path.exists(filepath) and get_media_path:
+        results = get_media_path(filename, all=True)
+        if results:
+            filepath = results[0]
+
+    return filepath
 
 def media_url(url, prefix=None):
     if prefix:
